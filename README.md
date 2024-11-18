@@ -1,178 +1,104 @@
-# Arch Linux Installation Guide
+# Quickstart Guide: Docker Compose and WordPress
 
-This document provides a guide for installing Arch Linux using the live system booted from an installation medium created from an official installation image.
+## Docker Compose - Wordpress Example
 
-## System Requirements
+Mainly got the steps for download from Dockerdocs, this is a summed up/ personial notes part.
+1. **Setting Up apt repository**
 
-- **Architecture**: x86_64-compatible machine
-- **RAM**: Minimum 512 MiB
-- **Disk Space**: Less than 2 GiB for a basic installation
-- **Internet Connection**: Required for package retrieval
+*sudo apt-get update*
 
-## 1. Pre-installation
+*sudo apt-get install ca-certificates curl*
 
-### 1.2 Verify Signature
+*sudo install -m 0755 -d /etc/apt/keyrings*
 
-- **With GnuPG**:
+*sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc*
 
-  **`gpg --keyserver-options auto-key-retrieve --verify archlinux-version-x86_64.iso.sig`**
+*sudo chmod a+r /etc/apt/keyrings/docker.asc*
 
-  **`pacman-key -v archlinux-version-x86_64.iso.sig`**
+2. **Installing Docker Packages**
+   
+*sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin*
 
-### 1. Pre-Install
+Then run this next one to confirm installation with a hello-world image
 
-Create the iso or whatever you have onto the VM.
+*sudo docker run hello-world*
 
-### 1.5 Console Keyboard Layout and Font
+We are now done installing Docker! 
 
-**`localectl list-keymaps`**
+Remember to shut off the hello world image(docker-compose down)
+# Add the repository to Apt sources:
+```
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
+3. **Create Project Directory**
 
-For Keyboard layout ex:
-**`loadkeys de-latin1`**
+   - Choose an name for your directory.(Remember you need to Probably reference it several Times)
+   - This directory will contain your application resources and `docker-compose.yml` file.
+  I used this yml below, I put the reasource I used at the end
+```
+services:
+  db:
+    # We use a mariadb image which supports both amd64 & arm64 architecture
+    image: mariadb:10.6.4-focal
+    # If you really want to use MySQL, uncomment the following line
+    #image: mysql:8.0.27
+    command: '--default-authentication-plugin=mysql_native_password'
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=somewordpress
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+    expose:
+      - 3306
+      - 33060
+  wordpress:
+    image: wordpress:latest
+    volumes:
+      - wp_data:/var/www/html
+    ports:
+      - 80:80
+    restart: always
+    environment:
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress
+volumes:
+  db_data:
+  wp_data:
+  ```
 
-Console fonts are located - /usr/share/kbd/consolefonts/
-Can be set with setfont, omitting the path and file extension. 
-Ex: large font suitable for HiDPI screens, run:
-**`setfont ter-132b`**
+4. **Navigate to the Project Directory**
+ Make sure to cd into the directory for startup. Use the command below. (my_wordpress being the name of the directory)
+   *cd my_wordpress/*
 
-### 1.6 Verify Boot Mode
+5. **Create a docker-compose.yml**
 
-To verify the boot mode, check the UEFI bitness:
-**`cat /sys/firmware/efi/fw_platform_size`**
+Create docker-compose.yml File (yml is a format)
 
-Return 64, the system is booted in UEFI mode with a 64-bit x64 UEFI.
-Return 32, the system is booted in UEFI mode with a 32-bit IA32 UEFI, limiting boot loader choice to systemd-boot and GRUB.
-File does not exist - system may be booted in BIOS (or CSM) mode. (Most Likely this mode)
+Make a configuration for WordPress and a MySQL.
+Use volume mounts (db_data and wordpress_data) for data persistence.
 
-### 1.7 Internet
+6. **Build the Project**
 
-- To check that network interface is enabled and listed
-  **`ip link`**
+Run Docker Compose
 
-Configure network:
+Execute the following command to start the services in detached mode:
 
-DHCP: Should just work
-Static IP address: Follow Network configuration#Static IP address.
+*docker-compose up -d*
 
-Verify the connection with ping:
-**`ping archlinux.org`**
+This will pull the necessary Docker images and start the WordPress and MySQL containers.
+After this it is now just needed to setup wordpress on the port you selected for WordPress.(WordPress should be used on ports 80 or 443)
 
-### 1.8 System Clock
+Remember *docker-compose down* is how to actually shut off container. The container could run in background. This is why it could be useful to run something like a website.
 
-Should auto fix if in live environment.
-Use timedatectl to ensure the system clock is synchronized:
-**`timedatectl`**
-
-### 1.9 Partition the Disks
-
-Should be something like `/dev/sda`. To identify, use `lsblk` or `fdisk`:
-
-**`fdisk -l`**
-
-Use a partitioning tool fdisk.
-**`fdisk /dev/the_disk_to_be_partitioned`**
-
-### 1.9.1 Layout
-
-Use the MBR layout with BIOS.
-If it is UEFI not BIOS use GPT layout.
-Comment: Had a problem with this make sure to do MBR with the BIOS, GPT does not work with BIOS!
-
-## MBR
-
-swap - /dev/swap_part - Linux swap - 4 GiB
-/(root) - /dev/root_part - Linux - 23 GiB
-Comment: They probably have names like sda1 and sda2.
-
-### 1.10 Format the Partitions
-
-- Create an Ext4 file system on `/dev/root_partition`:
-  **`mkfs.ext4 /dev/root_partition`**
-
-For swap, initialize it with mkswap:
-**`mkswap /dev/swap_partition`**
-
-If created an EFI system partition, format it to FAT32 using mkfs.fat:
-**`mkfs.fat -F 32 /dev/efi_system_partition`**
-
-### 1.11 Mount File Systems
-
-Mount `/mnt`. For Example: `/dev/root_partition`:
-
-**`mount /dev/root_partition /mnt`**
-
-For UEFI systems:
-**`mount --mkdir /dev/efi_system_partition /mnt/boot`**
-
-If swap:
-**`swapon /dev/swap_partition`**
-
-## 2. Install
-
-### 2.1 Install Essential Packages
-Comment: Be very careful with this part if mirror list is emtpy re pop it or restart
-Check if mirror list is ok, if not fix it. Use command:
-**`/etc/pacman.d/mirrorlist`**
-
-Use:
-**`pacstrap -K /mnt base linux linux-firmware`**
-
-## Config System
-
-### 3.1 Fstab
-
-Generate the `fstab` file:
-**`genfstab -U /mnt >> /mnt/etc/fstab`**
-
-Check and edit /mnt/etc/fstab if needed.
-
-### 3.2 Chroot
-
-Enter the new system:
-**`arch-chroot /mnt`**
-
-### 3.3 Time
-Comment: if needed you can pull up list for time zones
-Set the time zone:
-**`ln -sf /usr/share/zoneinfo/United\ States/Chicago /etc/localtime`**
-
-Sync the hardware clock:
-**`hwclock --systohc`**
-
-### 3.4 Localization
-Comment: If this is gone would recommend restart, if not restart re pop
-Uncomment needed locales in /etc/locale.gen and run:
-**`locale-gen`**
-
-Set LANG in /etc/locale.conf:
-**`LANG=en_US.UTF-8`**
-
-Make keyboard layout persistent in /etc/vconsole.conf:
-**`KEYMAP=de-latin1`**
-
-### 3.5 Network Configuration
-Comment: This will be the system name
-Create the hostname file:
-
-**`/etc/hostname`**
-**`gnome`**
-
-### 3.6 Initramfs
-
-Run:
-**`mkinitcpio -P`**
-
-### 3.7 Root Password
-Comment: Highly recommended to make a password for root.
-Set root password:
-**`passwd`**
-
-### 3.8 Boot Loader
-Comment: can pick any bootloader for MBR, be careful on setup
-Picking Boot loader
-GRUB - Bootloader
-run:
-**`grub-install --target=x86_64-efi --efi-directory=esp --bootloader-id=GRUB`**
-
-Finally
-## Reboot
+**Resources Used**
+1. https://github.com/docker/awesome-compose/blob/master/official-documentation-samples/wordpress/README.md
+2. https://docs.docker.com/engine/install/ubuntu/
