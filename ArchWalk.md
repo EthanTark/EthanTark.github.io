@@ -129,3 +129,134 @@ Check and edit /mnt/etc/fstab if needed.
 ### 3.2 Chroot
 
 Enter the new system:
+**`arch-chroot /mnt`**
+
+### 3.3 Time
+Comment: if needed you can pull up list for time zones
+Set the time zone:
+**`ln -sf /usr/share/zoneinfo/United\ States/Chicago /etc/localtime`**
+
+Sync the hardware clock:
+**`hwclock --systohc`**
+
+### 3.4 Localization
+Comment: If this is gone would recommend restart, if not restart re pop
+Uncomment needed locales in /etc/locale.gen and run:
+**`locale-gen`**
+
+Set LANG in /etc/locale.conf:
+**`LANG=en_US.UTF-8`**
+
+Make keyboard layout persistent in /etc/vconsole.conf:
+**`KEYMAP=de-latin1`**
+
+### 3.5 Network Configuration
+Comment: This will be the system name
+Create the hostname file:
+
+**`/etc/hostname`**
+**`gnome`**
+
+### 3.6 Initramfs
+
+Run:
+**`mkinitcpio -P`**
+
+### 3.7 Root Password
+Comment: Highly recommended to make a password for root.
+Set root password:
+**`passwd`**
+
+### 3.8 Boot Loader
+Comment: can pick any bootloader for MBR, be careful on setup
+Picking Boot loader
+GRUB - Bootloader
+run:
+**`grub-install --target=x86_64-efi --efi-directory=esp --bootloader-id=GRUB`**
+
+Finally
+## Reboot
+## 4 Additional Steps
+
+### 4.1 Install New Shell
+Install a shell such as zsh:
+**`pacman -S zsh`**
+Set it as the default shell for the root user:
+**`chsh -s /bin/zsh`**
+### 4.2 Install and Configure SSH
+
+Install the SSH package:
+**`pacman -S openssh`**
+
+Enable and start the SSH service:
+**`systemctl enable sshd`**
+**`systemctl start sshd`**
+
+### 4.3 Change Shell Colors
+
+Install a terminal customization tool, such as oh-my-zsh, for enhanced shell colors:
+**`sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`**
+
+Modify the ~/.zshrc file to choose thy theme colors:
+**`nano ~/.zshrc`**
+
+Update the ZSH_THEME variable
+
+Reload the configuration:
+**`source ~/.zshrc`**
+
+### 4.4 Install GNOME GUI
+
+Install the GNOME desktop environment and its dependencies:
+
+**`pacman -S gnome gnome-extra`**
+
+Enable the GNOME Display Manager (GDM):
+**`systemctl enable gdm`**
+**`systemctl start gdm`**
+
+### 4.5 Add Sudo Users to Admin
+
+Install the sudo package:
+**`pacman -S sudo`**
+
+Add users Codi, Ethan, and Justin to the system and the wheel group:
+
+**`useradd -m -G wheel -s /bin/bash codi`**
+**`useradd -m -G wheel -s /bin/bash ethan`**
+**`useradd -m -G wheel -s /bin/bash justin`**
+
+Set passwords for the users:
+**`passwd codi`**
+**`passwd ethan`**
+**`passwd justin`**
+
+Edit the sudoers file to allow members of the wheel group to execute commands with sudo:
+**EDITOR=nano visudo**
+
+Uncomment the following line:
+**%wheel ALL=(ALL:ALL) ALL**
+
+### 4.6 Add Basic Aliases
+
+Define five basic aliases in the shell configuration file (e.g., ~/.bashrc or ~/.zshrc):
+***`echo "alias ll='ls -la'" >> ~/.zshrc`***
+***`echo "alias gs='git status'" >> ~/.zshrc`***
+***`echo "alias update='sudo pacman -Syu'" >> ~/.zshrc`***
+***`echo "alias cls='clear'" >> ~/.zshrc`***
+***`echo "alias ..='cd ..'" >> ~/.zshrc`***
+
+Reload the configuration:
+**`source ~/.zshrc`**
+
+### 5. Comments Throughout the Guide(Troubles)
+
+Ensure to use MBR layout for BIOS systems; GPT does not work with BIOS.
+
+Verify the mirror list before installing essential packages; regenerate it if empty.
+
+When partitioning, note that device names are typically sda1, sda2, etc.
+
+Use timedatectl to check and synchronize the system clock in the live environment.
+
+For shell customization, tools like oh-my-zsh provide extensive options for themes and plugins.
