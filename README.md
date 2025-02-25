@@ -8,6 +8,6 @@ WireGuard VPN - [VPN](https://github.com/EthanTark/EthanTark.github.io/blob/main
 
 Text Editor In C - [Editor](https://github.com/EthanTark/texteditor2.0)
 
-Fibonacci Function In MIPS - [Fibonacci]()
+Fibonacci Function In MIPS - [Fibonacci](https://github.com/EthanTark/EthanTark.github.io/blob/main/prj1_q1.asm)
 
 Booth Algorithm and Multiplier MIPS - [Booth Algorithm]()
